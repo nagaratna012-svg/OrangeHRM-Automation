@@ -1,5 +1,7 @@
 package tests;
 
+import api.EmployeeApiClient;
+import io.restassured.response.Response;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.Assert;
@@ -47,9 +49,15 @@ public class EmployeeLifecycleTest {
     @Test
     public void addNewEmployee() throws Exception {
 
+        int employeeNumber = 0;
+        String uniqueEmployeeId = null;
+
         try {
 
-            // Login
+            // =====================================================
+            // 1. LOGIN
+            // =====================================================
+
             LoginPage loginPage =
                     new LoginPage(driver);
 
@@ -67,7 +75,11 @@ public class EmployeeLifecycleTest {
                     "Login successful and Dashboard displayed"
             );
 
-            // Navigate to PIM
+
+            // =====================================================
+            // 2. NAVIGATE TO ADD EMPLOYEE
+            // =====================================================
+
             PIMPage pimPage =
                     new PIMPage(driver);
 
@@ -82,16 +94,24 @@ public class EmployeeLifecycleTest {
                     "Navigated to Add Employee page"
             );
 
-            // Read employee data from JSON
+
+            // =====================================================
+            // 3. READ EMPLOYEE DATA FROM JSON
+            // =====================================================
+
             EmployeeData employeeData =
                     JsonDataReader.getEmployeeData(
                             "src/test/resources/testdata/employee.json"
                     );
 
-            String uniqueEmployeeId =
+            uniqueEmployeeId =
                     "AUTO" + (System.currentTimeMillis() % 100000);
 
-            // Add employee
+
+            // =====================================================
+            // 4. ADD EMPLOYEE
+            // =====================================================
+
             AddEmployeePage addEmployeePage =
                     new AddEmployeePage(driver);
 
@@ -108,12 +128,87 @@ public class EmployeeLifecycleTest {
                     "Employee Personal Details page should be displayed after saving"
             );
 
-            ExtentReportManager.getTest().pass(
-                    "Employee created successfully: "
-                            + uniqueEmployeeId
+            employeeNumber =
+                    addEmployeePage.getEmployeeNumber();
+
+            System.out.println(
+                    "Created Employee Number: "
+                            + employeeNumber
             );
 
-            // Search employee
+            ExtentReportManager.getTest().pass(
+                    "Employee created successfully. Employee Number: "
+                            + employeeNumber
+            );
+
+
+            // =====================================================
+            // 5. API VALIDATION OF CREATED EMPLOYEE
+            // =====================================================
+
+            EmployeeApiClient employeeApiClient =
+                    new EmployeeApiClient();
+
+            Response apiResponse =
+                    employeeApiClient.getEmployeeByNumber(
+                            employeeNumber
+                    );
+
+            System.out.println(
+                    "API Status Code: "
+                            + apiResponse.getStatusCode()
+            );
+
+            System.out.println(
+                    "API Response: "
+                            + apiResponse.asPrettyString()
+            );
+
+            Assert.assertEquals(
+                    apiResponse.getStatusCode(),
+                    200,
+                    "API should return HTTP 200 for the created employee"
+            );
+
+            String apiFirstName =
+                    apiResponse.jsonPath()
+                            .getString("data.firstName");
+
+            String apiLastName =
+                    apiResponse.jsonPath()
+                            .getString("data.lastName");
+
+            String apiEmployeeId =
+                    apiResponse.jsonPath()
+                            .getString("data.employeeId");
+
+            Assert.assertEquals(
+                    apiFirstName,
+                    employeeData.getFirstName(),
+                    "API First Name should match UI test data"
+            );
+
+            Assert.assertEquals(
+                    apiLastName,
+                    employeeData.getLastName(),
+                    "API Last Name should match UI test data"
+            );
+
+            Assert.assertEquals(
+                    apiEmployeeId,
+                    uniqueEmployeeId,
+                    "API Employee ID should match UI-created Employee ID"
+            );
+
+            ExtentReportManager.getTest().pass(
+                    "API validation successful. UI and API employee data match."
+            );
+
+
+            // =====================================================
+            // 6. SEARCH EMPLOYEE BY EMPLOYEE ID
+            // =====================================================
+
             EmployeeListPage employeeListPage =
                     new EmployeeListPage(driver);
 
@@ -127,10 +222,15 @@ public class EmployeeLifecycleTest {
             );
 
             ExtentReportManager.getTest().pass(
-                    "Employee found using Employee ID"
+                    "Employee found using Employee ID: "
+                            + uniqueEmployeeId
             );
 
-            // Edit employee
+
+            // =====================================================
+            // 7. UPDATE JOB TITLE AND EMPLOYMENT STATUS
+            // =====================================================
+
             employeeListPage.clickEditEmployeeById(
                     uniqueEmployeeId
             );
@@ -150,11 +250,22 @@ public class EmployeeLifecycleTest {
                     "Job Title should be updated to QA Engineer"
             );
 
-            ExtentReportManager.getTest().pass(
-                    "Employee Job Title updated successfully"
+            Assert.assertTrue(
+                    employeeDetailsPage.isEmploymentStatusDisplayed(
+                            "Full-Time Permanent"
+                    ),
+                    "Employment Status should be updated to Full-Time Permanent"
             );
 
-            // Delete employee
+            ExtentReportManager.getTest().pass(
+                    "Employee Job Title and Employment Status updated successfully"
+            );
+
+
+            // =====================================================
+            // 8. SEARCH EMPLOYEE BEFORE DELETION
+            // =====================================================
+
             employeeListPage.searchEmployeeById(
                     uniqueEmployeeId
             );
@@ -164,21 +275,81 @@ public class EmployeeLifecycleTest {
                     "Employee should exist before deletion"
             );
 
+            ExtentReportManager.getTest().pass(
+                    "Employee verified before deletion"
+            );
+
+
+            // =====================================================
+            // 9. DELETE EMPLOYEE THROUGH UI
+            // =====================================================
+
             employeeListPage.deleteEmployeeById(
                     uniqueEmployeeId
             );
 
             Assert.assertTrue(
                     employeeListPage.isEmployeeNotDisplayed(),
-                    "Employee should be deleted successfully"
+                    "Employee should be deleted successfully from UI"
             );
 
             ExtentReportManager.getTest().pass(
-                    "Employee deleted successfully: "
+                    "Employee deleted successfully through UI: "
                             + uniqueEmployeeId
             );
 
-            // Logout
+
+            // =====================================================
+            // 10. VERIFY DELETION THROUGH API
+            // =====================================================
+
+            Response deleteVerificationResponse =
+                    employeeApiClient.getEmployeeByNumber(
+                            employeeNumber
+                    );
+
+            System.out.println(
+                    "API Status Code After UI Deletion: "
+                            + deleteVerificationResponse.getStatusCode()
+            );
+
+            System.out.println(
+                    "API Response After UI Deletion: "
+                            + deleteVerificationResponse.asPrettyString()
+            );
+
+            int deletionVerificationStatus =
+                    deleteVerificationResponse.getStatusCode();
+
+            Assert.assertTrue(
+                    deletionVerificationStatus == 404
+                            || deletionVerificationStatus == 422,
+                    "API should indicate that the deleted employee no longer exists. "
+                            + "Actual status: "
+                            + deletionVerificationStatus
+            );
+
+            ExtentReportManager.getTest().pass(
+                    "API deletion verification successful. "
+                            + "Employee Number "
+                            + employeeNumber
+                            + " no longer exists. "
+                            + "API returned status: "
+                            + deletionVerificationStatus
+            );
+
+            ExtentReportManager.getTest().pass(
+                    "API deletion verification successful. "
+                            + "Employee Number "
+                            + employeeNumber
+                            + " no longer exists."
+            );
+
+
+            // =====================================================
+            // 11. LOGOUT
+            // =====================================================
+
             LogoutPage logoutPage =
                     new LogoutPage(driver);
 
@@ -193,6 +364,62 @@ public class EmployeeLifecycleTest {
                     "Logout successful"
             );
 
+
+            // =====================================================
+            // FINAL SUCCESS MESSAGE
+            // =====================================================
+
+            System.out.println(
+                    "=========================================="
+            );
+
+            System.out.println(
+                    "EMPLOYEE LIFECYCLE TEST PASSED"
+            );
+
+            System.out.println(
+                    "Employee Number: "
+                            + employeeNumber
+            );
+
+            System.out.println(
+                    "Employee ID: "
+                            + uniqueEmployeeId
+            );
+
+            System.out.println(
+                    "UI Creation: PASSED"
+            );
+
+            System.out.println(
+                    "API Validation: PASSED"
+            );
+
+            System.out.println(
+                    "UI Search: PASSED"
+            );
+
+            System.out.println(
+                    "UI Update: PASSED"
+            );
+
+            System.out.println(
+                    "UI Deletion: PASSED"
+            );
+
+            System.out.println(
+                    "API Deletion Verification: PASSED"
+            );
+
+            System.out.println(
+                    "Logout: PASSED"
+            );
+
+            System.out.println(
+                    "=========================================="
+            );
+
+
         } catch (Exception e) {
 
             String screenshotPath =
@@ -202,7 +429,8 @@ public class EmployeeLifecycleTest {
                     );
 
             ExtentReportManager.getTest().fail(
-                    "Test failed: " + e.getMessage()
+                    "Test failed: "
+                            + e.getMessage()
             );
 
             ExtentReportManager.addScreenshot(

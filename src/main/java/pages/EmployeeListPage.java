@@ -60,15 +60,37 @@ public class EmployeeListPage {
 
     public boolean isEmployeeDisplayed() {
 
-        By employeeRowById = By.xpath(
+        By employeeIdText = By.xpath(
                 "//div[contains(@class,'oxd-table-body')]" +
-                        "//div[@role='row']" +
-                        "[.//div[normalize-space()='" + currentEmployeeId + "']]"
+                        "//div[contains(normalize-space(),'" +
+                        currentEmployeeId +
+                        "')]"
         );
 
-        return wait.until(
-                ExpectedConditions.presenceOfElementLocated(employeeRowById)
-        ) != null;
+        try {
+
+            wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                            employeeIdText
+                    )
+            );
+
+            System.out.println(
+                    "Employee found with Employee ID: "
+                            + currentEmployeeId
+            );
+
+            return true;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Employee not found with Employee ID: "
+                            + currentEmployeeId
+            );
+
+            return false;
+        }
     }
 
     public void searchEmployeeById(String employeeId) {

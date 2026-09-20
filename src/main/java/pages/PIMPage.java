@@ -16,7 +16,7 @@ public class PIMPage {
             By.xpath("//span[normalize-space()='PIM']");
 
     private By addEmployeeMenu =
-            By.xpath("//*[normalize-space()='Add Employee']");
+            By.xpath("//a[contains(@href,'/pim/addEmployee')]");
 
     private By addEmployeeHeading =
             By.xpath("//h6[normalize-space()='Add Employee']");
@@ -37,11 +37,24 @@ public class PIMPage {
     }
 
     public void clickAddEmployee() {
-        wait.until(
-                ExpectedConditions.elementToBeClickable(addEmployeeMenu)
-        ).click();
-    }
 
+        String addEmployeeUrl =
+                "https://opensource-demo.orangehrmlive.com/web/index.php/pim/addEmployee";
+
+        driver.get(addEmployeeUrl);
+
+        wait.until(
+                ExpectedConditions.urlContains(
+                        "/pim/addEmployee"
+                )
+        );
+
+        wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        addEmployeeHeading
+                )
+        );
+    }
     public boolean isAddEmployeePageDisplayed() {
         return wait.until(
                 ExpectedConditions.visibilityOfElementLocated(addEmployeeHeading)

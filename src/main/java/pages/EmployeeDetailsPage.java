@@ -35,24 +35,36 @@ public class EmployeeDetailsPage {
     private By saveButton =
             By.xpath("//button[@type='submit']");
 
+
     public EmployeeDetailsPage(WebDriver driver) {
+
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+        this.wait = new WebDriverWait(
+                driver,
+                Duration.ofSeconds(20)
+        );
     }
+
 
     public void waitForLoaderToDisappear() {
 
         wait.until(
-                ExpectedConditions.invisibilityOfElementLocated(formLoader)
+                ExpectedConditions.invisibilityOfElementLocated(
+                        formLoader
+                )
         );
     }
+
 
     public void clickJobTab() {
 
         waitForLoaderToDisappear();
 
         wait.until(
-                ExpectedConditions.elementToBeClickable(jobTab)
+                ExpectedConditions.elementToBeClickable(
+                        jobTab
+                )
         ).click();
 
         waitForLoaderToDisappear();
@@ -63,6 +75,7 @@ public class EmployeeDetailsPage {
                 )
         );
     }
+
 
     public void selectJobTitle(String jobTitle) {
 
@@ -81,11 +94,14 @@ public class EmployeeDetailsPage {
         );
 
         wait.until(
-                ExpectedConditions.elementToBeClickable(option)
+                ExpectedConditions.elementToBeClickable(
+                        option
+                )
         ).click();
 
         waitForLoaderToDisappear();
     }
+
 
     public void selectEmploymentStatus(String status) {
 
@@ -104,22 +120,28 @@ public class EmployeeDetailsPage {
         );
 
         wait.until(
-                ExpectedConditions.elementToBeClickable(option)
+                ExpectedConditions.elementToBeClickable(
+                        option
+                )
         ).click();
 
         waitForLoaderToDisappear();
     }
+
 
     public void clickSave() {
 
         waitForLoaderToDisappear();
 
         wait.until(
-                ExpectedConditions.elementToBeClickable(saveButton)
+                ExpectedConditions.elementToBeClickable(
+                        saveButton
+                )
         ).click();
 
         waitForLoaderToDisappear();
     }
+
 
     public boolean isJobTitleDisplayed(String jobTitle) {
 
@@ -132,6 +154,7 @@ public class EmployeeDetailsPage {
         );
 
         try {
+
             return wait.until(
                     ExpectedConditions.visibilityOfElementLocated(
                             selectedJobTitle
@@ -139,13 +162,46 @@ public class EmployeeDetailsPage {
             ).isDisplayed();
 
         } catch (Exception e) {
+
             System.out.println(
                     "Job Title verification failed. Current URL: "
                             + driver.getCurrentUrl()
             );
+
             return false;
         }
     }
+
+
+    public boolean isEmploymentStatusDisplayed(String status) {
+
+        By selectedEmploymentStatus = By.xpath(
+                "//label[normalize-space()='Employment Status']" +
+                        "/ancestor::div[contains(@class,'oxd-input-group')]" +
+                        "//div[contains(@class,'oxd-select-text')]" +
+                        "//div[contains(@class,'oxd-select-text-input')]" +
+                        "[normalize-space()='" + status + "']"
+        );
+
+        try {
+
+            return wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(
+                            selectedEmploymentStatus
+                    )
+            ).isDisplayed();
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Employment Status verification failed. Current URL: "
+                            + driver.getCurrentUrl()
+            );
+
+            return false;
+        }
+    }
+
 
     public void updateJobDetails(
             String jobTitle,

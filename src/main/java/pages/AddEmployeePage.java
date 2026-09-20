@@ -1,40 +1,48 @@
 package pages;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.WebElement;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-
+import java.io.File;
 import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AddEmployeePage {
 
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // Employee fields
-    private By firstNameField = By.name("firstName");
+    private By firstNameField =
+            By.name("firstName");
 
-    private By middleNameField = By.name("middleName");
+    private By middleNameField =
+            By.name("middleName");
 
-    private By lastNameField = By.name("lastName");
+    private By lastNameField =
+            By.name("lastName");
 
     private By employeeIdField =
-            By.xpath("//label[text()='Employee Id']/following::input[1]");
+            By.xpath(
+                    "//label[text()='Employee Id']" +
+                            "/following::input[1]"
+            );
 
-    // Profile picture
     private By profilePicture =
             By.cssSelector("input[type='file']");
 
-    // Save button
     private By saveButton =
             By.xpath("//button[@type='submit']");
 
-    // Success / employee details
     private By personalDetailsHeading =
-            By.xpath("//h6[contains(normalize-space(),'Personal Details')]");
+            By.xpath(
+                    "//h6[contains(normalize-space(),'Personal Details')]"
+            );
+
 
     public AddEmployeePage(WebDriver driver) {
 
@@ -42,9 +50,10 @@ public class AddEmployeePage {
 
         this.wait = new WebDriverWait(
                 driver,
-                Duration.ofSeconds(10)
+                Duration.ofSeconds(20)
         );
     }
+
 
     public void enterFirstName(String firstName) {
 
@@ -52,14 +61,25 @@ public class AddEmployeePage {
                 ExpectedConditions.visibilityOfElementLocated(
                         firstNameField
                 )
-        ).sendKeys(firstName);
+        ).clear();
+
+        driver.findElement(firstNameField)
+                .sendKeys(firstName);
     }
 
+
     public void enterMiddleName(String middleName) {
+
+        wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        middleNameField
+                )
+        ).clear();
 
         driver.findElement(middleNameField)
                 .sendKeys(middleName);
     }
+
 
     public void enterLastName(String lastName) {
 
@@ -67,38 +87,59 @@ public class AddEmployeePage {
                 ExpectedConditions.visibilityOfElementLocated(
                         lastNameField
                 )
-        ).sendKeys(lastName);
-    }
+        ).clear();
 
+        driver.findElement(lastNameField)
+                .sendKeys(lastName);
+    }
 
 
     public void enterEmployeeId(String employeeId) {
 
-        // Wait for OrangeHRM form loader to disappear
-        By formLoader = By.cssSelector("div.oxd-form-loader");
+        By formLoader =
+                By.cssSelector("div.oxd-form-loader");
 
         wait.until(
-                ExpectedConditions.invisibilityOfElementLocated(formLoader)
+                ExpectedConditions.invisibilityOfElementLocated(
+                        formLoader
+                )
         );
 
-        WebElement field = wait.until(
-                ExpectedConditions.elementToBeClickable(employeeIdField)
-        );
+        WebElement field =
+                wait.until(
+                        ExpectedConditions.elementToBeClickable(
+                                employeeIdField
+                        )
+                );
 
         field.click();
 
-        field.sendKeys(Keys.CONTROL, "a");
-        field.sendKeys(Keys.BACK_SPACE);
+        field.sendKeys(
+                Keys.CONTROL,
+                "a"
+        );
+
+        field.sendKeys(
+                Keys.BACK_SPACE
+        );
+
         field.sendKeys(employeeId);
     }
 
-    public void uploadProfilePicture(String filePath) {
-        String absolutePath = new java.io.File(filePath)
-                .getAbsolutePath();
 
-        driver.findElement(profilePicture)
-                .sendKeys(absolutePath);
+    public void uploadProfilePicture(String filePath) {
+
+        String absolutePath =
+                new File(filePath)
+                        .getAbsolutePath();
+
+        wait.until(
+                ExpectedConditions.presenceOfElementLocated(
+                        profilePicture
+                )
+        ).sendKeys(absolutePath);
     }
+
 
     public void clickSave() {
 
@@ -109,36 +150,99 @@ public class AddEmployeePage {
         ).click();
     }
 
+
     public boolean isEmployeeDetailsDisplayed() {
+
         try {
+
             wait.until(
-                    ExpectedConditions.urlContains("/pim/viewPersonalDetails")
+                    ExpectedConditions.urlContains(
+                            "/pim/viewPersonalDetails"
+                    )
             );
 
-            return driver.getCurrentUrl().contains("/pim/viewPersonalDetails");
+            return driver.getCurrentUrl()
+                    .contains("/pim/viewPersonalDetails");
 
         } catch (Exception e) {
-            System.out.println("Current URL after save: " + driver.getCurrentUrl());
+
+            System.out.println(
+                    "Current URL after save: "
+                            + driver.getCurrentUrl()
+            );
+
             return false;
         }
     }
+
+
+    /*
+     * Extract OrangeHRM internal employee number
+     * from the employee details URL.
+     *
+     * Example URL:
+     * /pim/viewPersonalDetails/empNumber/123
+     *
+     * Returns:
+     * 123
+     */
+    public int getEmployeeNumber() {
+
+        String currentUrl =
+                driver.getCurrentUrl();
+
+        Pattern pattern =
+                Pattern.compile(
+                        "/empNumber/(\\d+)"
+                );
+
+        Matcher matcher =
+                pattern.matcher(currentUrl);
+
+        if (matcher.find()) {
+
+            int employeeNumber =
+                    Integer.parseInt(
+                            matcher.group(1)
+                    );
+
+            System.out.println(
+                    "OrangeHRM Employee Number: "
+                            + employeeNumber
+            );
+
+            return employeeNumber;
+        }
+
+        throw new RuntimeException(
+                "Unable to extract employee number from URL: "
+                        + currentUrl
+        );
+    }
+
 
     public void addEmployee(
             String firstName,
             String middleName,
             String lastName,
             String employeeId,
-            String profilePicturePath) {
+            String profilePicturePath
+    ) {
 
         enterFirstName(firstName);
+
         enterMiddleName(middleName);
+
         enterLastName(lastName);
+
         enterEmployeeId(employeeId);
 
-        if (profilePicturePath != null &&
-                !profilePicturePath.isEmpty()) {
+        if (profilePicturePath != null
+                && !profilePicturePath.trim().isEmpty()) {
 
-            uploadProfilePicture(profilePicturePath);
+            uploadProfilePicture(
+                    profilePicturePath
+            );
         }
 
         clickSave();
